@@ -8,7 +8,6 @@
 // Helpers (have to figure it out)
 // execute
 #include <stdlib.h>
-#include <threads.h>
 #define MAX_POOL_SIZE 3
 
 typedef void *(*jtask_t)(void *);
@@ -23,6 +22,7 @@ typedef struct Job {
 typedef struct JobQueue {
   struct Job *head; // HEAD BEGIN
   struct Job *tail; // TAIL END
+  pthread_mutex_t jq_mtx;
 } JobQueue;
 
 typedef struct Thread {
@@ -40,10 +40,6 @@ typedef struct ThreadPool {
 // WHEN THE THREAD IS FREE, QUEUE IS POPPED AND TASK IS EXECUTED
 //
 
-int lstn_empty_threads();           // CONTINUOUS LOOKS FOR EMPTY THREADS
-int poll_queue();                   // CONTINUOUS LOOKS FOR QUEUE
-void spn_thrd(ThreadPool *, Job *); // SPINS A NEW THREAD
-int is_pl_full(ThreadPool *);
 
 // TASKS and JOB HANDLERS
 //
@@ -56,4 +52,4 @@ void *insert_job(JobQueue *, Job *);
 Job *pop_job(JobQueue *);
 int is_queue_empty(JobQueue *);
 
-void *execute(ThreadPool *tp,JobQueue *jq, struct Job *job);
+void *execute(ThreadPool *tp,JobQueue *jq);
