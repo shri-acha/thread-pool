@@ -1,22 +1,22 @@
 #include "thrd_pl.h"
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
 
-
 void *display(void *name) {
   unsigned int seed = time(NULL);
-  printf("Work complete!  %d\n",rand_r(&seed));
+  printf("Work complete!  %d\n",rand());
+  sleep(1);
   return NULL;
 }
 
 int main() {
   JobQueue *jq = jb_queue_crt();
   // CREATE A JOB
-  Job *j_ = jb_crt(display, "@test\n");
-  Job *j__ = jb_crt(display, "@test-2\n");
+  Job *j_ = jb_crt(display, "@test\n",NULL);
+  Job *j__ = jb_crt(display, "@test-2\n",NULL);
+
   // CREATE A POOL
   ThreadPool *tp = malloc(sizeof(ThreadPool));
   if (tp == NULL) {
@@ -42,12 +42,11 @@ int main() {
   // res_->task(res_->args);
   // res__->task(res__->args);
 
-  init_thrd_pl(tp,jq);
-  while(1){
-    insert_job(tp->jq, j_);
-    insert_job(tp->jq, j__);
-  }
+  init_thrd_pl(tp,1,jq);
 
-  thrd_pl_destroy(tp, tp->jq);
-  // execute(tp, jq);
+  while(1){
+    execute(tp, j_);
+    execute(tp, j__);
+  }
+  thrd_pl_destroy(tp);
 }

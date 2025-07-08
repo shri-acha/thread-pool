@@ -1,61 +1,25 @@
-
-//            Structures required
-//
-//  A job queue to hold the threads/job.
-//
-//  A job
-//
-// Helpers (have to figure it out)
-// execute
+#ifndef _THRD_PL_H 
 #include <stdlib.h>
-#define MAX_POOL_SIZE 3
+#include "thrd_pl_h_int.h"
 
-typedef void *(*jtask_t)(void *);
+/**
+ * @brief Creates a new thread pool.
+ * * @param num_threads The number of threads to create in the pool.
+ * @return nil 
+ */
+void init_thrd_pl(ThreadPool *,size_t no_of_threads, JobQueue *);
+/**
+ * @brief Destroys the thread pool.
+ * * @param thread pool pointer, job queue associated
+ * @return nil
+ */
+void thrd_pl_destroy(ThreadPool *);
 
-typedef struct Job {
-  jtask_t task;
-  void *args;
-  struct Job *next; // NEXT IS TOWARDS HEAD
-  struct Job *prev; // PREV IS TOWARDS TAIL
-} Job;
+/**
+ * @brief execute a task given a tp and a task.
+ * * @param thread pool pointer, job queue associated
+ * @return nil
+ */
+void *execute(ThreadPool *,Job *);
 
-typedef struct JobQueue {
-  struct Job *head; // HEAD BEGIN
-  struct Job *tail; // TAIL END
-  pthread_mutex_t qmtx;
-  pthread_cond_t qcndt;
-  int f_shutdown_;
-} JobQueue;
-
-typedef struct Thread {
-  pthread_t thrd_hndlr;
-  int is_free; // 1 if thread is free, 0 is not.
-} Thread;
-
-typedef struct ThreadPool {
-  Thread *pool[MAX_POOL_SIZE]; // Pool
-  int cur_ocpy;                // Current Occupancy
-  pthread_cond_t pshutdown;
-  JobQueue* jq;
-} ThreadPool;
-
-// THREAD AND POOL HANDLERS
-//
-// WHEN THE THREAD IS FREE, QUEUE IS POPPED AND TASK IS EXECUTED
-//
-
-void init_thrd_pl(ThreadPool *, JobQueue *);
-void thrd_pl_destroy(ThreadPool *, JobQueue *);
-
-// TASKS and JOB HANDLERS
-//
-// TASKS ARE FIRST ASSIGNED IN THE QUEUE
-//
-//
-JobQueue *jb_queue_crt();
-Job *jb_crt(jtask_t, void *);
-void *insert_job(JobQueue *, Job *);
-Job *pop_job(JobQueue *);
-int is_queue_empty(JobQueue *);
-
-void *execute(ThreadPool *tp, JobQueue *jq);
+#endif // !THRD_PL_H
