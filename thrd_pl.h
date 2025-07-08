@@ -20,6 +20,6 @@ void thrd_pl_destroy(ThreadPool *);
  * * @param thread pool pointer, job queue associated
  * @return nil
  */
-void *execute(ThreadPool *,Job *);
+void *execute(ThreadPool *,jtask_t,void *);
 
 #endif // !THRD_PL_H
