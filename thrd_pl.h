@@ -22,7 +22,9 @@ typedef struct Job {
 typedef struct JobQueue {
   struct Job *head; // HEAD BEGIN
   struct Job *tail; // TAIL END
-  pthread_mutex_t jq_mtx;
+  pthread_mutex_t qmtx;
+  pthread_cond_t qcndt;
+  int f_shutdown_;
 } JobQueue;
 
 typedef struct Thread {
@@ -32,7 +34,9 @@ typedef struct Thread {
 
 typedef struct ThreadPool {
   Thread *pool[MAX_POOL_SIZE]; // Pool
-  int cur_ocpy;               // Current Occupancy
+  int cur_ocpy;                // Current Occupancy
+  pthread_cond_t pshutdown;
+  JobQueue* jq;
 } ThreadPool;
 
 // THREAD AND POOL HANDLERS
@@ -40,6 +44,8 @@ typedef struct ThreadPool {
 // WHEN THE THREAD IS FREE, QUEUE IS POPPED AND TASK IS EXECUTED
 //
 
+void init_thrd_pl(ThreadPool *, JobQueue *);
+void thrd_pl_destroy(ThreadPool *, JobQueue *);
 
 // TASKS and JOB HANDLERS
 //
@@ -52,4 +58,4 @@ void *insert_job(JobQueue *, Job *);
 Job *pop_job(JobQueue *);
 int is_queue_empty(JobQueue *);
 
-void *execute(ThreadPool *tp,JobQueue *jq);
+void *execute(ThreadPool *tp, JobQueue *jq);
