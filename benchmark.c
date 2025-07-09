@@ -36,11 +36,13 @@ int main() {
     exit(-1);
   }
 
-  init_thrd_pl(tp_, 10, jq_);
-
-  for (int i = 0; i < MAX_TASKS; i++) {
+  init_thrd_pl(tp_, 3, jq_);
+    // printf("[BOOL] %d\n",tp_->jq->f_shutdown_);
     execute(tp_, display, "hello world!\n");
-  }
+    execute(tp_, display, "hello world!\n");
+    execute(tp_, display, "hello world!\n");
+    execute(tp_, display, "hello world!\n");
+    execute(tp_, display, "hello world!\n");
   thrd_pl_destroy(tp_);
   // printf("SMALL\tTIME-TAKEN\n");
   // printf("%lf\n",(double) ((clock()- start_time_small)/CLOCKS_PER_SEC) *1000)

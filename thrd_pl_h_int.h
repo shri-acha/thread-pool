@@ -2,6 +2,7 @@
 #ifndef _THRD_PL_INT_H
 
 #include <stdlib.h>
+#include <stdatomic.h>
 
 #define MAX_POOL_SIZE 64
 typedef void *(*jtask_t)(void *);
@@ -18,7 +19,7 @@ typedef struct JobQueue {
   struct Job *tail; // TAIL END
   pthread_mutex_t qmtx;
   pthread_cond_t qcndt;
-  int f_shutdown_;
+  atomic_bool f_shutdown_;
 } JobQueue;
 
 typedef struct Thread {
@@ -27,10 +28,9 @@ typedef struct Thread {
 
 typedef struct ThreadPool {
   Thread *pool[MAX_POOL_SIZE]; // Pool
-  int cur_ocpy;                // No of threads being used in the pool
+  atomic_int cur_ocpy;                // No of threads being used in the pool
   JobQueue *jq;                // Associated Job Queue
   int no_of_threads;
-  pthread_mutex_t ocpncy_mtx; // Mutex to manage the occupancy count
 } ThreadPool;
 
 JobQueue *jb_queue_crt();

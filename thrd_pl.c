@@ -1,11 +1,12 @@
 #include "thrd_pl_h_int.h"
 #include <pthread.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 void *execute(ThreadPool *tp, jtask_t task, void* args) {
-  if (tp->jq->f_shutdown_){ // Doesn't add jobs after shutdown flag activated
+  if (atomic_load(&tp->jq->f_shutdown_)){ // Doesn't add jobs after shutdown flag activated
     printf("[CANT ADD JOBS] - shutdown flag");
     return NULL;
   }
@@ -21,15 +22,16 @@ void *worker_thrd(void *args) {
 
   while (1) {
 
-      if (tp->jq->f_shutdown_ && is_queue_empty(tp->jq)) {
-          printf("[HALT]\n");
-          pthread_mutex_unlock(&tp->jq->qmtx); // Unlock the mutex before exiting, else deadlock.
-          pthread_exit(NULL);
-      }
 
     pthread_mutex_lock(&jq->qmtx);
     // //  printf("Head:%p\tTail:%p\n", jq->head, jq->tail);
-    while (is_queue_empty(jq)) { // Waits for condition while the queue is empty
+    if (atomic_load(&tp->jq->f_shutdown_) && is_queue_empty(tp->jq)) {
+        printf("[HALT]\n");
+        pthread_mutex_unlock(&tp->jq->qmtx); // Unlock the mutex before exiting, else deadlock.
+        pthread_exit(NULL);
+    }
+    while ( is_queue_empty(jq) && !atomic_load(&jq->f_shutdown_) ) {
+       // Waits for condition while the queue is empty
        // printf("Waiting for qcndt...\n");
       pthread_cond_wait(&jq->qcndt, &jq->qmtx); // Threads get stuck here
        // printf("Signal received!\tHead:%p Tail:%p\n",jq->head,jq->tail);
@@ -39,16 +41,12 @@ void *worker_thrd(void *args) {
     pthread_mutex_unlock(&jq->qmtx);
 
     if (job->task != NULL) { // sanity check
-      pthread_mutex_lock(&tp->ocpncy_mtx);
-      tp->cur_ocpy++;
-      pthread_mutex_unlock(&tp->ocpncy_mtx);
-
+    atomic_fetch_add(&tp->cur_ocpy,1);
       job->task(job->args);
-
-      pthread_mutex_lock(&tp->ocpncy_mtx);
-      tp->cur_ocpy--;
-      pthread_mutex_unlock(&tp->ocpncy_mtx);
+    atomic_fetch_sub(&tp->cur_ocpy,1);
     }
+
+    free(job);
 
     //  printf("Freeing memory: %p\n", job);
   }
@@ -68,13 +66,17 @@ void init_thrd_pl(ThreadPool *tp, int num_of_threads, JobQueue *jq) {
 
   for (int i = 0; i < num_of_threads; i++) {
     Thread *tbuf = malloc(sizeof(Thread));
+    if (!tbuf) {
+    fprintf(stderr,
+            "[ERROR]: PROVIDE NON NULL VALUES OF ThreadPool AND/OR JobQueue");
+    exit(-1); 
+    }
     tp->pool[i] = tbuf;
   }
 
   tp->jq = jq;
   tp->no_of_threads = num_of_threads;
-
-  pthread_mutex_init(&tp->ocpncy_mtx, NULL); // initiating the occupancy mutex
+  atomic_store(&tp->cur_ocpy,0);
 
   for (int i = 0; i < tp->no_of_threads; i++) {
     pthread_create(&(tp->pool[i]->thrd_hndlr), NULL, worker_thrd, tp);
@@ -84,7 +86,9 @@ void init_thrd_pl(ThreadPool *tp, int num_of_threads, JobQueue *jq) {
 
 void thrd_pl_destroy(ThreadPool *tp) {
 
-  tp->jq->f_shutdown_ = 1;
+  pthread_cond_broadcast(&tp->jq->qcndt); // broadcast to wake all sleeping threads
+
+  atomic_store(&tp->jq->f_shutdown_,true);
 
   // Order of desctruction must be 
   //
@@ -112,6 +116,7 @@ void thrd_pl_destroy(ThreadPool *tp) {
   while (!is_queue_empty(tp->jq)) {
     free(pop_job(tp->jq));
   }
+
 }
 
 struct Job *jb_crt(jtask_t f, void *args, void *ret_addr) {
@@ -134,11 +139,15 @@ struct Job *jb_crt(jtask_t f, void *args, void *ret_addr) {
 JobQueue *jb_queue_crt() {
 
   JobQueue *jq = malloc(sizeof(JobQueue));
+  if (!jq) {
+    fprintf(stderr, "[ERROR]: Memory allocation failed!");
+    exit(-1);
+  }
   jq->head = NULL;
   jq->tail = NULL;
   pthread_mutex_init(&jq->qmtx, NULL);//initiating mutex variable for queue 
   pthread_cond_init(&jq->qcndt, NULL); //initiating  condition variable for queue state
-  jq->f_shutdown_ = 0;
+  atomic_store(&jq->f_shutdown_,0);
 
   return jq;
 }
