@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #define MAX_TASKS 50
+#define THREADS_NB omp_get_max_threads()
 
 void *display(void *name) {
   unsigned int seed = time(NULL);
@@ -37,13 +38,12 @@ int main() {
 
   init_thrd_pl(tp_, 10, jq_);
 
-  clock_t start_time_small = clock();
   for (int i = 0; i < MAX_TASKS; i++) {
-    execute(tp_, display, NULL);
-    // printf("Task:%d\n", i);
+    execute(tp_, display, "hello world!\n");
   }
   thrd_pl_destroy(tp_);
   // printf("SMALL\tTIME-TAKEN\n");
-  // printf("%lf\n",(double) ((clock()- start_time_small)/CLOCKS_PER_SEC) *1000) ;
+  // printf("%lf\n",(double) ((clock()- start_time_small)/CLOCKS_PER_SEC) *1000)
+  // ;
   return 0;
 }
