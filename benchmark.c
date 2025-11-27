@@ -7,13 +7,13 @@
 #include <time.h>
 #include <unistd.h>
 
-#define MAX_TASKS 50
+#define MAX_TASKS 100
 #define THREADS_NB omp_get_max_threads()
 
 void *display(void *name) {
   unsigned int seed = time(NULL);
-  sleep(1);
-  printf("Work complete!  %d\n", rand());
+  usleep(100000);
+  execlp("ls","/bin/ls",NULL);
   return NULL;
 }
 
@@ -36,13 +36,11 @@ int main() {
     exit(-1);
   }
 
-  init_thrd_pl(tp_, 3, jq_);
+  init_thrd_pl(tp_, 64, jq_);
     // printf("[BOOL] %d\n",tp_->jq->f_shutdown_);
-    execute(tp_, display, "hello world!\n");
-    execute(tp_, display, "hello world!\n");
-    execute(tp_, display, "hello world!\n");
-    execute(tp_, display, "hello world!\n");
-    execute(tp_, display, "hello world!\n");
+	for (int i=0;i<1000;i++){
+		execute(tp_, display, "hello world!\n");
+	}
   thrd_pl_destroy(tp_);
   // printf("SMALL\tTIME-TAKEN\n");
   // printf("%lf\n",(double) ((clock()- start_time_small)/CLOCKS_PER_SEC) *1000)
