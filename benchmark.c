@@ -13,7 +13,7 @@
 void *display(void *name) {
   unsigned int seed = time(NULL);
   usleep(100000);
-  execlp("ls","/bin/ls",NULL);
+  name =(char*) "Hello World!";
   return NULL;
 }
 
